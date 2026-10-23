@@ -13,9 +13,10 @@
 #   - the wrapper checkout is pinned to the dispatched target_ref
 #     (persist-credentials: false kept);
 #   - a Provenance step is added first in each job, echoing the checked-out SHA;
-#   - windows_runtime's SR_SOURCE_COMMIT is pinned to the dispatched target_ref
-#     instead of github.sha (which here is the wrapper host ref, not the tree
-#     under test) so a Windows-built binary still records the tested revision.
+#   - windows_runtime derives SR_SOURCE_COMMIT from the checked-out tree in its
+#     Provenance step (github.sha is the wrapper host ref, and a branch-name
+#     target_ref is not a build identity) so a Windows-built binary records the
+#     tested revision whatever form the input takes.
 # This file is intentionally not sent upstream.
 name: OSC manual CI
 
@@ -1129,8 +1130,6 @@ jobs:
     # whose sha is github.sha -- so a Windows-built binary records its real
     # identity and the Makefile never has to reach for git. The Linux jobs run
     # with git on PATH and resolve the same revision themselves.
-    env:
-      SR_SOURCE_COMMIT: ${{ inputs.target_ref }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1148,6 +1147,7 @@ jobs:
             exit 1
           fi
           printf 'checked-out SHA: %s\n' "$checked_out_sha"
+          echo "SR_SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up MSYS2 UCRT64
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
